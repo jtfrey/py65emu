@@ -139,7 +139,7 @@ class CPU:
         return ((v//10) << 4) | (v % 10)
 
     def fromTwosCom(self, v):
-        """The input integer v SHOULD be in the range [0,255].  Due to the use of 8-bit masks, any more-signficant bits in v will be discarded."""
+        """The input integer v SHOULD be in the range [0,255].  Due to the use of 8-bit masks, any more-significant bits in v will be discarded."""
         return (v & 0x7f) - (v & 0x80)
 
     interrupts = {
