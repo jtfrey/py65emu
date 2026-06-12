@@ -785,27 +785,32 @@ class CPU:
                 self.r.p = self.r.p | 0b00100000
 
     def ROL(self, a):
+        # Allow v_new to spill into 9-bits and the Carry flag will be in bit 8
+        # (this was also done in ASL)
         if a == "a":
-            v_old = self.r.a
-            self.r.a = v_new = ((v_old << 1) + self.r.getFlag('C')) & 0xff
+            v_new = (v_old << 1) | self.r.getFlag('C')
+            self.r.a = v_new & 0xff
         else:
-            v_old = self.mmu.read(a)
-            v_new = ((v_old << 1) + self.r.getFlag('C')) & 0xff
-            self.mmu.write(a, v_new)
-
-        self.r.setFlag('C', v_old & 0x80)
-        self.r.ZN(v_new)
+            v_new = (self.mmu.read(a) << 1) | self.r.getFlag('C')
+            self.mmu.write(a, v_new & 0xff)
+        # Carry bit value is in bit 8:
+        self.r.setFlag('C', v_new & 0x100)
+        self.r.ZN(v_new & 0xff)
 
     def ROR(self, a):
+        # The existing Carry flag will shift into bit 7:
+        c_bit = self.r.getFlag('C') << 7
         if a == "a":
-            v_old = self.r.a
-            self.r.a = v_new = ((v_old >> 1) + self.r.getFlag('C')*0x80) & 0xff
+            # The new Carry flag comes from bit 0 of A:
+            self.r.setFlag('C', self.r.a & 0x01)
+            self.r.a = v_new = (c_bit | (self.r.a >> 1)) & 0xff
         else:
             v_old = self.mmu.read(a)
-            v_new = ((v_old >> 1) + self.r.getFlag('C')*0x80) & 0xff
+            # The new Carry flag comes from bit 0 of the operand:
+            self.r.setFlag('C', v_old & 0x01)
+            v_new = (c_bit | (v_old >> 1)) & 0xff
             self.mmu.write(a, v_new)
-
-        self.r.setFlag('C', v_old & 0x01)
+            
         self.r.ZN(v_new)
 
     def RTI(self, _):
