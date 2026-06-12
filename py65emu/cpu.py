@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import math
 import functools
-
 
 class Registers:
     """ An object to hold the CPU registers. """
@@ -31,12 +29,12 @@ class Registers:
         return bool(self.p & self.flagBit[flag])
 
     def setFlag(self, flag, v=True):
-        self.p = (self.p | self.flagBit[flag]) if v else (self.p & (0xFF ^ self.flagBit[flag]))
+        self.p = (self.p | self.flagBit[flag]) if v else (self.p & (0xff ^ self.flagBit[flag]))
 
     def clearFlag(self, flag):
         # Python has a ones-complement operator but no way to indicate bit-width of its
-        # argument; an XOR with 0xFF does the same thing, though, in our 8-bit world:
-        self.p = self.p & (0xFF ^ self.flagBit[flag])
+        # argument; an XOR with 0xff does the same thing, though, in our 8-bit world:
+        self.p = self.p & (0xff ^ self.flagBit[flag])
 
     def clearFlags(self):
         self.p = 0
@@ -120,6 +118,7 @@ class CPU:
         self.r.s = (self.r.s - 1) & 0xff
 
     def stackPushWord(self, v):
+        """The input integer v MUST be in the range [0,65535]."""
         self.stackPush(v >> 8)
         self.stackPush(v & 0xff)
 
@@ -132,12 +131,15 @@ class CPU:
         return self.stackPop() + (self.stackPop() << 8)
 
     def fromBCD(self, v):
+        """The input integer v MUST be in the range [0,255] and is expected to be a binary-coded decimal value."""
         return (v>>4) * 10 + (v & 0xf)
 
     def toBCD(self, v):
+        """The input integer v MUST be in the range [0,99]."""
         return ((v//10) << 4) | (v % 10)
 
     def fromTwosCom(self, v):
+        """The input integer v SHOULD be in the range [0,255].  Due to the use of 8-bit masks, any more-signficant bits in v will be discarded."""
         return (v & 0x7f) - (v & 0x80)
 
     interrupts = {
@@ -169,7 +171,7 @@ class CPU:
         o = self.nextWord()
         a = o + self.r.x
         # Test for page cross:
-        if (o & 0xFF00) != (a & 0xFF00):
+        if (o & 0xff00) != (a & 0xff00):
             self.cc += 1
 
         return a & 0xffff
@@ -178,7 +180,7 @@ class CPU:
         o = self.nextWord()
         a = o + self.r.y
         # Test for page cross:
-        if (o & 0xFF00) != (a & 0xFF00):
+        if (o & 0xff00) != (a & 0xff00):
             self.cc += 1
 
         return a & 0xffff
@@ -204,7 +206,8 @@ class CPU:
         o = (self.mmu.read((i + 1) & 0xff) << 8) + self.mmu.read(i)
         a = o + self.r.y
 
-        if math.floor(o/0xff) != math.floor(a/0xff):
+        # Test for page cross:
+        if (o & 0xff00) != (a & 0xff00):
             self.cc += 1
 
         return a & 0xffff
@@ -660,10 +663,8 @@ class CPU:
         if self.r.getFlag(v[0]) is v[1]:
             o = self.r.pc
             self.r.pc += self.fromTwosCom(d)
-            if math.floor(o/0xff) == math.floor(self.r.pc/0xff):
-                self.cc += 1
-            else:
-                self.cc += 2
+            # Page cross adds an additional cycle:
+            self.cc += 1 + (1 if ((o & 0xff00) != (self.r.pc & 0xff00)) else 0)
 
     def BRK(self, _):
         self.r.setFlag('B')
