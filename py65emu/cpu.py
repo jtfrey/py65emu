@@ -276,7 +276,7 @@ class CPU:
             ("PL", 2, [0x10], ("N", False)),
             ("MI", 2, [0x30], ("N", True)),
             ("VC", 2, [0x50], ("V", False)),
-            ("VC", 2, [0x70], ("V", True)),
+            ("VS", 2, [0x70], ("V", True)),
             ("CC", 2, [0x90], ("C", False)),
             ("CS", 2, [0xb0], ("C", True)),
             ("NE", 2, [0xd0], ("Z", False)),
