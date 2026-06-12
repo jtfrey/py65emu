@@ -131,8 +131,8 @@ class CPU:
         return self.stackPop() + (self.stackPop() << 8)
 
     def fromBCD(self, v):
-        """The input integer v MUST be in the range [0,255] and is expected to be a binary-coded decimal value."""
-        return (v>>4) * 10 + (v & 0xf)
+        """The input integer v SHOULD be in the range [0,255] and is expected to be a binary-coded decimal value."""
+        return ((v & 0xf0)>>4) * 10 + (v & 0xf)
 
     def toBCD(self, v):
         """The input integer v MUST be in the range [0,99]."""
