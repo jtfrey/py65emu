@@ -31,13 +31,12 @@ class Registers:
         return bool(self.p & self.flagBit[flag])
 
     def setFlag(self, flag, v=True):
-        if v:
-            self.p = self.p | self.flagBit[flag]
-        else:
-            self.clearFlag(flag)
+        self.p = (self.p | self.flagBit[flag]) if v else (self.p & (0xFF ^ self.flagBit[flag]))
 
     def clearFlag(self, flag):
-        self.p = self.p & (255 - self.flagBit[flag])
+        # Python has a ones-complement operator but no way to indicate bit-width of its
+        # argument; an XOR with 0xFF does the same thing, though, in our 8-bit world:
+        self.p = self.p & (0xFF ^ self.flagBit[flag])
 
     def clearFlags(self):
         self.p = 0
@@ -133,10 +132,10 @@ class CPU:
         return self.stackPop() + (self.stackPop() << 8)
 
     def fromBCD(self, v):
-        return (((v & 0xf0) // 0x10) * 10) + (v & 0xf)
+        return (v>>4) * 10 + (v & 0xf)
 
     def toBCD(self, v):
-        return int(math.floor(v/10))*16 + (v % 10)
+        return ((v//10) << 4) | (v % 10)
 
     def fromTwosCom(self, v):
         return (v & 0x7f) - (v & 0x80)
@@ -169,7 +168,8 @@ class CPU:
     def ax_a(self):
         o = self.nextWord()
         a = o + self.r.x
-        if math.floor(o/0xff) != math.floor(a/0xff):
+        # Test for page cross:
+        if (o & 0xFF00) != (a & 0xFF00):
             self.cc += 1
 
         return a & 0xffff
@@ -177,7 +177,8 @@ class CPU:
     def ay_a(self):
         o = self.nextWord()
         a = o + self.r.y
-        if math.floor(o/0xff) != math.floor(a/0xff):
+        # Test for page cross:
+        if (o & 0xFF00) != (a & 0xFF00):
             self.cc += 1
 
         return a & 0xffff
